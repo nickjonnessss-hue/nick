@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<title>Nick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --white:#FFFFFF; --ink:#0F1F19; --muted:#6B7A74; --line:#E2E8E5;
+    --green:#BAF2BF; --green-deep:#9DE6A4; --green-soft:#EEFBF0; --green-ink:#0B3D2A; --listen:#F59E0B; --danger:#C2410C;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--white);color:var(--ink);
+    font-family:"Montserrat",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
+  .wrap{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center}
+
+  #status{min-height:3.2em;text-align:center;font-size:1.05rem;font-weight:600;line-height:1.45;margin:0 0 36px;color:var(--ink)}
+  #status.idle{color:var(--muted);font-weight:500}
+
+  .mic{width:min(56vw,220px);height:min(56vw,220px);border-radius:50%;border:0;cursor:pointer;
+    background:var(--green);color:var(--green-ink);display:grid;place-items:center;position:relative;
+    box-shadow:0 22px 44px -16px rgba(80,190,100,.55);transition:transform .15s,background .2s}
+  .mic:active{transform:scale(.97);background:var(--green-deep)}
+  .mic svg{width:34%;height:34%}
+  .mic.listening{background:var(--listen);box-shadow:0 22px 44px -18px rgba(245,158,11,.6)}
+  .mic.listening::before,.mic.listening::after{content:"";position:absolute;inset:-14px;border-radius:50%;
+    border:3px solid var(--listen);animation:ring 1.5s ease-out infinite}
+  .mic.listening::after{animation-delay:.75s}
+  .mic.busy{background:var(--green-soft);color:var(--green-ink);box-shadow:none}
+  @keyframes ring{from{opacity:.8;transform:scale(.92)}to{opacity:0;transform:scale(1.22)}}
+  @media (prefers-reduced-motion: reduce){.mic.listening::before,.mic.listening::after{animation:none}}
+
+  .type{width:100%;display:flex;align-items:center;gap:8px;margin-top:44px;
+    border:1px solid var(--line);border-radius:14px;padding:4px 4px 4px 14px;background:var(--white)}
+  .type:focus-within{border-color:var(--green-ink);box-shadow:0 0 0 3px rgba(186,242,191,.7)}
+  .type input{flex:1;border:0;outline:0;font:inherit;font-size:.92rem;font-weight:500;color:var(--ink);background:transparent;padding:9px 0}
+  .type button{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);font:inherit;font-weight:700;font-size:.85rem;padding:9px 14px;cursor:pointer}
+  button:focus-visible{outline:3px solid rgba(11,61,42,.35);outline-offset:3px}
+
+  .sheet{position:fixed;inset:0;background:rgba(15,31,25,.35);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+  .panel{width:100%;max-width:480px;background:var(--white);border-radius:22px 22px 0 0;
+    padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+  .panel h2{font-size:1.05rem;font-weight:700;margin:0 0 4px}
+  .panel .heard{color:var(--muted);font-size:.9rem;margin:0 0 6px}
+  label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  .panel input,.panel textarea{width:100%;font:inherit;font-weight:500;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--white)}
+  .panel input:focus,.panel textarea:focus{outline:0;border-color:var(--green-ink)}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .seg{display:flex;background:var(--green-soft);border-radius:12px;padding:4px;gap:4px;margin-top:10px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--green-ink);font:inherit;font-weight:600;font-size:.85rem;padding:8px 4px;border-radius:9px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--green-soft);border-radius:999px;padding:6px 6px 6px 12px;font-size:.85rem;font-weight:600}
+  .chip.missing{background:var(--white);border:1px dashed var(--danger)}
+  .chip input{border:0;padding:2px 4px;width:170px}
+  .chip button{border:0;background:transparent;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 6px}
+  .actions{display:flex;gap:10px;margin-top:20px}
+  .btn{flex:1;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;cursor:pointer}
+  .btn.primary{background:var(--green);color:var(--green-ink)}
+  .btn.ghost{background:var(--white);color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5}
+  .err{color:var(--danger);font-size:.85rem;font-weight:600;margin:10px 0 0}
+
+  .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);
+    max-width:calc(100% - 40px);background:var(--ink);color:var(--white);padding:12px 18px;border-radius:999px;
+    font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:10}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast button{border:0;background:transparent;color:#BAF2BF;font:inherit;font-weight:700;margin-left:10px;cursor:pointer;pointer-events:auto}
+  .dlist{list-style:none;margin:12px 0 0;padding:0}
+  .dlist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .dlist li:last-child{border-bottom:0}
+  .dlist .t{flex:1;font-weight:600;font-size:.92rem}
+  .dlist .w{display:block;color:var(--muted);font-weight:500;font-size:.8rem;margin-top:2px}
+  .dlist button{border:1px solid var(--danger);background:var(--white);color:var(--danger);font:inherit;font-weight:700;font-size:.8rem;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .dlist .none{color:var(--muted);font-size:.9rem}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <p id="status" class="idle" aria-live="polite">Tap and speak</p>
+
+    <button type="button" class="mic" id="mic" aria-label="Start speaking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </button>
+
+    <form class="type" id="typeForm" autocomplete="off">
+      <input id="input" placeholder="Or type here" aria-label="Type a reminder or block">
+      <button type="submit">Add</button>
+    </form>
+  </main>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <h2 id="sheetTitle">Check before saving</h2>
+      <p class="heard" id="heard"></p>
+      <p class="heard" id="question" hidden></p>
+      <div class="seg" role="group" aria-label="Type">
+        <button type="button" data-type="reminder">Reminder</button>
+        <button type="button" data-type="block">Block</button>
+        <button type="button" data-type="meeting">Meeting</button>
+      </div>
+      <label for="title">Title</label><input id="title">
+      <label for="date">Date</label><input id="date" type="date">
+      <div class="row">
+        <div><label for="start">Start</label><input id="start" type="time"></div>
+        <div><label for="end">End</label><input id="end" type="time"></div>
+      </div>
+      <label>Guests</label>
+      <div class="chips" id="guests"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="guestAdd" placeholder="Add name or email">
+        <button type="button" class="btn ghost" style="flex:0 0 auto;padding:11px 16px" id="guestAddBtn">Add</button>
+      </div>
+      <label for="notes">Notes</label><textarea id="notes" rows="2"></textarea>
+      <p class="err" id="formErr" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="cancel">Discard</button>
+        <button type="button" class="btn primary" id="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="delSheet" hidden>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+      <h2 id="delTitle">Delete which one?</h2>
+      <p class="heard" id="delHeard"></p>
+      <ul class="dlist" id="delList"></ul>
+      <div class="actions"><button type="button" class="btn ghost" id="delClose">Close</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+<script>
+  (function(){
+    const h = new URLSearchParams(location.hash.slice(1));
+    try { if (h.get('u') && h.get('k')) { localStorage.setItem('nick_u', h.get('u')); localStorage.setItem('nick_k', h.get('k')); history.replaceState(null, '', location.pathname); } } catch(e){}
+  })();
+  let API = '', KEY = '';
+  try { API = localStorage.getItem('nick_u') || ''; KEY = localStorage.getItem('nick_k') || ''; } catch(e){}
+
+  const $ = id => document.getElementById(id);
+  let contacts = [], current = null, busy = false;
+
+  function status(msg, idle){ const s = $('status'); s.textContent = msg; s.classList.toggle('idle', !!idle); }
+  let toastTimer = null;
+  function toast(msg, undoId, undoFn, undoMsg){
+    const t = $('toast'); clearTimeout(toastTimer); t.textContent = msg;
+    if (undoId) { const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Undo';
+      b.onclick = async () => { t.classList.remove('show'); try { await run(undoFn || 'undoEvent', undoId); toast(undoMsg || 'Removed.'); } catch(e){ toast(e.message || String(e)); } };
+      t.appendChild(b); }
+    t.classList.add('show'); toastTimer = setTimeout(() => t.classList.remove('show'), undoId ? 8000 : 3500);
+  }
+
+  async function run(fn, ...args){
+    if (!API || !KEY) throw new Error('Not set up on this device. Open your setup link once.');
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ key: KEY, fn, args }) });
+    const text = await r.text();
+    let j; try { j = JSON.parse(text); } catch(e){ throw new Error('Server sent a web page, not data. Redeploy Apps Script as a New version and check the /exec URL.'); }
+    if (!j.ok) throw new Error(j.error || 'Something went wrong.');
+    return j.data;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false, heardText = '';
+  $('mic').addEventListener('click', () => {
+    if (busy) return;
+    if (!SR) { toast('Voice isn\u2019t supported here. Type below instead.'); $('input').focus(); return; }
+    if (listening) { rec.stop(); return; }
+    heardText = '';
+    rec = new SR(); rec.lang = 'en-IN'; rec.interimResults = true; rec.continuous = false;
+    rec.onstart = () => { listening = true; $('mic').classList.add('listening'); $('mic').setAttribute('aria-label','Stop'); status('Listening\u2026'); };
+    rec.onresult = e => { heardText = Array.from(e.results).map(r => r[0].transcript).join(' '); status('\u201C' + heardText + '\u201D'); };
+    rec.onerror = e => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') toast('Microphone blocked. Allow it in Chrome site settings, or type below.');
+      else if (e.error !== 'no-speech' && e.error !== 'aborted') toast('Voice stopped: ' + e.error);
+    };
+    rec.onend = () => { listening = false; $('mic').classList.remove('listening'); $('mic').setAttribute('aria-label','Start speaking');
+      if (heardText.trim()) understand(heardText.trim()); else status('Tap and speak', true); };
+    try { rec.start(); } catch(err){ toast('Could not start the mic. Type below instead.'); }
+  });
+
+  $('typeForm').addEventListener('submit', e => { e.preventDefault(); const v = $('input').value.trim(); if (v) understand(v); });
+
+  async function understand(text){
+    busy = true; $('mic').classList.add('busy'); status('Working it out\u2026');
+    try {
+      const out = await run('parseRequest', text);
+      if (out.type === 'delete') { await showDelete(out, text); return; }
+      out.guests = out.guests || []; current = out; current.heard = text;
+      out.guests.forEach(g => { if (!g.email) { const c = findContact(g.name); if (c) g.email = c.email; } });
+      if (out.guests.length || out.question || !out.start || !out.end) { openSheet(); status('Tap and speak', true); }
+      else {
+        const saved = await run('saveEvent', { type: out.type, title: out.title, start: out.start, end: out.end, guests: [], recurrence: out.recurrence || '', notes: out.notes || '' });
+        $('input').value = ''; current = null;
+        status('Saved \u2713  ' + saved.when, false);
+        toast(saved.summary, saved.id);
+        setTimeout(() => status('Tap and speak', true), 4000);
+      }
+    } catch(err){ status('Tap and speak', true); toast(err.message || String(err)); }
+    finally { busy = false; $('mic').classList.remove('busy'); }
+  }
+
+  async function showDelete(out, text){
+    const items = await run('findEvents', out.query || '', out.start || '', out.end || '');
+    status('Tap and speak', true);
+    if (items.length === 1 && !items[0].guests) {
+      const r = await run('deleteEvent', items[0].id);
+      status('Deleted \u2713', false); setTimeout(() => status('Tap and speak', true), 4000);
+      toast('Deleted: ' + r.title, items[0].id, 'restoreEvent', 'Restored.');
+      return;
+    }
+    $('delHeard').textContent = '\u201C' + text + '\u201D';
+    const ul = $('delList'); ul.innerHTML = '';
+    if (!items.length) { const li = document.createElement('li'); li.className = 'none'; li.textContent = 'Nothing matching found in the next 60 days.'; ul.appendChild(li); }
+    items.forEach(it => {
+      const li = document.createElement('li');
+      const t = document.createElement('span'); t.className = 't'; t.textContent = it.title;
+      const w = document.createElement('span'); w.className = 'w'; w.textContent = it.when + (it.guests ? ' \u00B7 ' + it.guests + (it.guests === 1 ? ' guest' : ' guests') : '');
+      t.appendChild(w);
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Delete';
+      b.onclick = async () => {
+        if (it.guests && !confirm('This will email a cancellation to ' + it.guests + (it.guests === 1 ? ' guest' : ' guests') + '. Delete "' + it.title + '"?')) return;
+        b.disabled = true;
+        try { const r = await run('deleteEvent', it.id); li.remove();
+          toast('Deleted: ' + r.title, r.canUndo ? it.id : null, 'restoreEvent', 'Restored.');
+          if (!ul.children.length) $('delSheet').hidden = true; }
+        catch(e){ b.disabled = false; toast(e.message || String(e)); }
+      };
+      li.append(t, b); ul.appendChild(li);
+    });
+    $('delSheet').hidden = false;
+  }
+  $('delClose').addEventListener('click', () => { $('delSheet').hidden = true; });
+
+  function findContact(q){
+    q = String(q||'').toLowerCase().trim(); if (!q) return null;
+    return contacts.find(c => c.email === q) || contacts.find(c => c.name.toLowerCase() === q) || contacts.find(c => c.name.toLowerCase().startsWith(q));
+  }
+  function setType(t){ current.type = t; document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.type === t)); updateSave(); }
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setType(b.dataset.type)));
+
+  function openSheet(){
+    $('heard').textContent = '\u201C' + current.heard + '\u201D';
+    $('question').hidden = !current.question; $('question').textContent = current.question || '';
+    $('title').value = current.title || '';
+    $('date').value = (current.start || '').slice(0,10);
+    $('start').value = (current.start || '').slice(11,16);
+    $('end').value = (current.end || '').slice(11,16);
+    $('notes').value = current.notes || '';
+    $('formErr').hidden = true;
+    setType(current.type || 'reminder'); renderGuests();
+    $('sheet').hidden = false;
+  }
+  function renderGuests(){
+    const box = $('guests'); box.innerHTML = '';
+    current.guests.forEach((g, i) => {
+      const chip = document.createElement('div'); chip.className = 'chip' + (g.email ? '' : ' missing');
+      const n = document.createElement('span'); n.textContent = g.name || g.email; chip.appendChild(n);
+      if (!g.email) { const inp = document.createElement('input'); inp.type = 'email'; inp.placeholder = 'Email needed';
+        inp.addEventListener('change', () => { g.email = inp.value.trim(); renderGuests(); }); chip.appendChild(inp); }
+      const x = document.createElement('button'); x.type = 'button'; x.textContent = '\u00D7'; x.setAttribute('aria-label', 'Remove ' + (g.name || g.email));
+      x.onclick = () => { current.guests.splice(i,1); renderGuests(); }; chip.appendChild(x); box.appendChild(chip);
+    });
+    updateSave();
+  }
+  $('guestAddBtn').addEventListener('click', () => {
+    const v = $('guestAdd').value.trim(); if (!v) return;
+    const c = findContact(v);
+    if (c) current.guests.push({name:c.name, email:c.email});
+    else if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) current.guests.push({name:v, email:v.toLowerCase()});
+    else current.guests.push({name:v, email:''});
+    $('guestAdd').value = ''; if (current.type !== 'meeting') setType('meeting'); renderGuests();
+  });
+  function updateSave(){ const n = (current.guests || []).filter(g => g.email).length;
+    $('save').textContent = n ? 'Save and send ' + n + (n === 1 ? ' invite' : ' invites') : 'Save'; }
+  $('cancel').addEventListener('click', () => { $('sheet').hidden = true; current = null; });
+
+  $('save').addEventListener('click', async () => {
+    const d = $('date').value, s = $('start').value, e = $('end').value;
+    const missing = current.guests.filter(g => !g.email);
+    const err = !$('title').value.trim() ? 'Add a title.' : !d || !s || !e ? 'Add a date, start and end time.' :
+      e <= s ? 'End time must be after the start time.' : missing.length ? 'Add an email for ' + missing.map(g => g.name).join(', ') + ', or remove them.' : '';
+    if (err) { $('formErr').textContent = err; $('formErr').hidden = false; return; }
+    const n = current.guests.length;
+    if (n && !confirm('Send a calendar invite from nishil@crefio.in to ' + current.guests.map(g => g.email).join(', ') + '?')) return;
+    $('save').disabled = true;
+    try {
+      const saved = await run('saveEvent', { type: current.type, title: $('title').value.trim(), start: d + 'T' + s, end: d + 'T' + e,
+        guests: current.guests, recurrence: current.recurrence || '', notes: $('notes').value.trim() });
+      $('sheet').hidden = true; $('input').value = ''; current = null;
+      toast(n ? 'Saved. Invites sent.' : saved.summary, n ? null : saved.id);
+    } catch(ex){ $('formErr').textContent = ex.message || String(ex); $('formErr').hidden = false; }
+    $('save').disabled = false;
+  });
+
+  (async () => { try { contacts = await run('getContacts'); } catch(e){ if (/Not set up|web page/.test(e.message)) toast(e.message); } })();
+</script>
+</body>
+</html>
